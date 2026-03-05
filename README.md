@@ -1,5 +1,7 @@
 # OpenAI Telegram Bot
 
+[![Coverage](https://codecov.io/gh/dasmfm/openai-telegram-bot/graph/badge.svg)](https://codecov.io/gh/dasmfm/openai-telegram-bot)
+
 A practical Telegram bot powered by OpenAI: chat naturally, understand photos, generate or edit images, and transcribe voice notes, all in one conversation.
 
 ## Use Cases
