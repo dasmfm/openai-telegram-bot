@@ -19,10 +19,9 @@ type Client struct {
 	bot          *tgbotapi.BotAPI
 	allowedIDs   map[int64]bool
 	maxFileBytes int64
-	throttle     time.Duration
 }
 
-func New(token string, allowedIDs map[int64]bool, maxFileMB int64, throttle time.Duration) (*Client, error) {
+func New(token string, allowedIDs map[int64]bool, maxFileMB int64) (*Client, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, err
@@ -33,7 +32,7 @@ func New(token string, allowedIDs map[int64]bool, maxFileMB int64, throttle time
 		maxFileBytes = 20 * 1024 * 1024
 	}
 
-	return &Client{bot: bot, allowedIDs: allowedIDs, maxFileBytes: maxFileBytes, throttle: throttle}, nil
+	return &Client{bot: bot, allowedIDs: allowedIDs, maxFileBytes: maxFileBytes}, nil
 }
 
 func (c *Client) Bot() *tgbotapi.BotAPI {
@@ -103,20 +102,6 @@ func (c *Client) DownloadFile(ctx context.Context, fileID string) ([]byte, strin
 	name := filepath.Base(file.FilePath)
 	log.Printf("telegram download done: ms=%d bytes=%d name=%s", time.Since(start).Milliseconds(), len(data), name)
 	return data, name, nil
-}
-
-func (c *Client) StartStreamingMessage(chatID int64) (int, error) {
-	msg := tgbotapi.NewMessage(chatID, "...")
-	msg.DisableWebPagePreview = true
-	msg.ParseMode = "HTML"
-
-	res, err := c.bot.Send(msg)
-	if err != nil {
-		log.Printf("telegram send error: start stream err=%v", err)
-		return 0, err
-	}
-	log.Printf("telegram start stream sent: chat=%d msg_id=%d", chatID, res.MessageID)
-	return res.MessageID, nil
 }
 
 func (c *Client) EditMessage(chatID int64, messageID int, text string) error {

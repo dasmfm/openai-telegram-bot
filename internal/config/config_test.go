@@ -15,7 +15,6 @@ func TestLoadDefaultsAndRequiredEnv(t *testing.T) {
 	t.Setenv("ROUTER_MODEL", "")
 	t.Setenv("SYSTEM_PROMPT", "")
 	t.Setenv("MAX_HISTORY_MSGS", "")
-	t.Setenv("STREAM_THROTTLE_MS", "")
 	t.Setenv("MAX_FILE_MB", "")
 	t.Setenv("REQUEST_TIMEOUT_SEC", "")
 	t.Setenv("TRANSCRIBE_MODEL", "")
@@ -33,9 +32,6 @@ func TestLoadDefaultsAndRequiredEnv(t *testing.T) {
 	}
 	if cfg.MaxHistoryMsgs != 20 || cfg.MaxFileMB != 20 {
 		t.Fatalf("unexpected numeric defaults: history=%d fileMB=%d", cfg.MaxHistoryMsgs, cfg.MaxFileMB)
-	}
-	if cfg.StreamThrottle != 600*time.Millisecond {
-		t.Fatalf("unexpected stream throttle: %v", cfg.StreamThrottle)
 	}
 	if cfg.RequestTimeout != 120*time.Second {
 		t.Fatalf("unexpected request timeout: %v", cfg.RequestTimeout)

@@ -18,7 +18,6 @@ type Config struct {
 	SystemPrompt    string
 	AllowedTGIDs    map[int64]bool
 	MaxHistoryMsgs  int
-	StreamThrottle  time.Duration
 	MaxFileMB       int64
 	RequestTimeout  time.Duration
 	TranscribeModel string
@@ -72,7 +71,6 @@ func Load() (Config, error) {
 	cfg.AllowedTGIDs = allowed
 
 	cfg.MaxHistoryMsgs = getenvInt("MAX_HISTORY_MSGS", 20)
-	cfg.StreamThrottle = time.Duration(getenvInt("STREAM_THROTTLE_MS", 600)) * time.Millisecond
 	cfg.MaxFileMB = int64(getenvInt("MAX_FILE_MB", 20))
 	cfg.RequestTimeout = time.Duration(getenvInt("REQUEST_TIMEOUT_SEC", 120)) * time.Second
 	cfg.TranscribeModel = strings.TrimSpace(os.Getenv("TRANSCRIBE_MODEL"))

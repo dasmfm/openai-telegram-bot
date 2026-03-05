@@ -22,7 +22,6 @@ type Handler struct {
 	OA             oaClient
 	Store          *memory.Store
 	MaxHistory     int
-	Throttle       time.Duration
 	RequestTimeout time.Duration
 }
 

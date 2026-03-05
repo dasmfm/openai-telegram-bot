@@ -198,7 +198,6 @@ func newTestHandler(tg *fakeTG, oa *fakeOA) *Handler {
 		OA:             oa,
 		Store:          memory.NewStore(),
 		MaxHistory:     50,
-		Throttle:       50 * time.Millisecond,
 		RequestTimeout: 5 * time.Second,
 	}
 }

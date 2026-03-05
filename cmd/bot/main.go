@@ -29,7 +29,6 @@ var (
 			OA:             oa,
 			Store:          store,
 			MaxHistory:     cfg.MaxHistoryMsgs,
-			Throttle:       cfg.StreamThrottle,
 			RequestTimeout: cfg.RequestTimeout,
 		}
 	}
@@ -53,7 +52,7 @@ func run() error {
 		return fmt.Errorf("config error: %w", err)
 	}
 
-	bot, err := newTelegramFn(cfg.TelegramToken, cfg.AllowedTGIDs, cfg.MaxFileMB, cfg.StreamThrottle)
+	bot, err := newTelegramFn(cfg.TelegramToken, cfg.AllowedTGIDs, cfg.MaxFileMB)
 	if err != nil {
 		return fmt.Errorf("telegram error: %w", err)
 	}

@@ -48,7 +48,6 @@ func TestRun_WiresDependenciesAndProcessesUpdates(t *testing.T) {
 		SystemPrompt:   "prompt",
 		AllowedTGIDs:   map[int64]bool{1: true},
 		MaxHistoryMsgs: 11,
-		StreamThrottle: 123 * time.Millisecond,
 		MaxFileMB:      22,
 		RequestTimeout: 33 * time.Second,
 	}
@@ -56,14 +55,12 @@ func TestRun_WiresDependenciesAndProcessesUpdates(t *testing.T) {
 	var gotToken string
 	var gotAllowed map[int64]bool
 	var gotMaxMB int64
-	var gotThrottle time.Duration
 
 	loadConfigFn = func() (config.Config, error) { return cfg, nil }
-	newTelegramFn = func(token string, allowedIDs map[int64]bool, maxFileMB int64, throttle time.Duration) (*telegram.Client, error) {
+	newTelegramFn = func(token string, allowedIDs map[int64]bool, maxFileMB int64) (*telegram.Client, error) {
 		gotToken = token
 		gotAllowed = allowedIDs
 		gotMaxMB = maxFileMB
-		gotThrottle = throttle
 		return &telegram.Client{}, nil
 	}
 	newOpenAIFn = func(apiKey string, model string, imageModel string, routerModel string, transcribeModel string, systemPrompt string) *openaiwrap.Client {
@@ -92,8 +89,8 @@ func TestRun_WiresDependenciesAndProcessesUpdates(t *testing.T) {
 	if err := run(); err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
-	if gotToken != cfg.TelegramToken || gotMaxMB != cfg.MaxFileMB || gotThrottle != cfg.StreamThrottle {
-		t.Fatalf("telegram.New got wrong args: token=%q maxMB=%d throttle=%v", gotToken, gotMaxMB, gotThrottle)
+	if gotToken != cfg.TelegramToken || gotMaxMB != cfg.MaxFileMB {
+		t.Fatalf("telegram.New got wrong args: token=%q maxMB=%d", gotToken, gotMaxMB)
 	}
 	if !gotAllowed[1] {
 		t.Fatalf("allowed ids not propagated: %#v", gotAllowed)
@@ -132,7 +129,7 @@ func TestRun_TelegramInitError(t *testing.T) {
 			MaxFileMB:     20,
 		}, nil
 	}
-	newTelegramFn = func(token string, allowedIDs map[int64]bool, maxFileMB int64, throttle time.Duration) (*telegram.Client, error) {
+	newTelegramFn = func(token string, allowedIDs map[int64]bool, maxFileMB int64) (*telegram.Client, error) {
 		return nil, errors.New("tg down")
 	}
 

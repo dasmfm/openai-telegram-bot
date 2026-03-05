@@ -1,5 +1,6 @@
 services:
   bot:
+    image: ghcr.io/dasmfm/openai-telegram-bot:latest
     build: .
     restart: unless-stopped
     environment:
@@ -11,7 +12,6 @@ services:
       SYSTEM_PROMPT: ${SYSTEM_PROMPT}
       ALLOWED_TG_IDS: ${ALLOWED_TG_IDS}
       MAX_HISTORY_MSGS: ${MAX_HISTORY_MSGS:-20}
-      STREAM_THROTTLE_MS: ${STREAM_THROTTLE_MS:-600}
       MAX_FILE_MB: ${MAX_FILE_MB:-20}
       REQUEST_TIMEOUT_SEC: ${REQUEST_TIMEOUT_SEC:-120}
       TRANSCRIBE_MODEL: ${TRANSCRIBE_MODEL:-whisper-1}
