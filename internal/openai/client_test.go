@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -173,4 +175,33 @@ func TestShouldRetryOpenAI_StringCases(t *testing.T) {
 	if _, ok := interface{}(tempNetErr{}).(net.Error); !ok {
 		t.Fatal("tempNetErr must implement net.Error")
 	}
+}
+
+func TestDownloadImage(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte("img-bytes"))
+		}))
+		defer server.Close()
+
+		data, err := downloadImage(context.Background(), server.URL)
+		if err != nil {
+			t.Fatalf("downloadImage returned error: %v", err)
+		}
+		if string(data) != "img-bytes" {
+			t.Fatalf("unexpected payload: %q", string(data))
+		}
+	})
+
+	t.Run("status error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadGateway)
+		}))
+		defer server.Close()
+
+		_, err := downloadImage(context.Background(), server.URL)
+		if err == nil || !strings.Contains(err.Error(), "status") {
+			t.Fatalf("expected status error, got %v", err)
+		}
+	})
 }

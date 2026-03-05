@@ -2,8 +2,11 @@ package telegram
 
 import (
 	"encoding/base64"
+	"errors"
 	"strings"
 	"testing"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 func TestSanitizeHTML_ClosesOpenTags(t *testing.T) {
@@ -101,5 +104,32 @@ func TestLongPollingConfig(t *testing.T) {
 	cfg := LongPollingConfig()
 	if cfg.Timeout != 60 {
 		t.Fatalf("unexpected timeout: %d", cfg.Timeout)
+	}
+}
+
+func TestNew(t *testing.T) {
+	orig := newBotAPIFn
+	defer func() { newBotAPIFn = orig }()
+
+	newBotAPIFn = func(token string) (*tgbotapi.BotAPI, error) {
+		if token != "token" {
+			t.Fatalf("unexpected token: %q", token)
+		}
+		return &tgbotapi.BotAPI{}, nil
+	}
+
+	c, err := New("token", map[int64]bool{1: true}, 0)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+	if c.maxFileBytes != 20*1024*1024 {
+		t.Fatalf("expected default maxFileBytes, got %d", c.maxFileBytes)
+	}
+
+	newBotAPIFn = func(token string) (*tgbotapi.BotAPI, error) {
+		return nil, errors.New("init error")
+	}
+	if _, err := New("token", nil, 10); err == nil {
+		t.Fatal("expected error from New when bot init fails")
 	}
 }

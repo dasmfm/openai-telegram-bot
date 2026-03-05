@@ -111,41 +111,6 @@ func (c *Client) BuildInput(messages []MessageInput) []responses.ResponseInputIt
 	return items
 }
 
-func (c *Client) StreamResponse(ctx context.Context, input []responses.ResponseInputItemUnionParam, onDelta func(string)) (string, error) {
-	start := time.Now()
-	log.Printf("openai stream start: model=%s items=%d", c.model, len(input))
-	params := responses.ResponseNewParams{
-		Input: responses.ResponseNewParamsInputUnion{OfInputItemList: input},
-		Model: openai.ChatModel(c.model),
-	}
-
-	stream := c.inner.Responses.NewStreaming(ctx, params)
-	var full strings.Builder
-	for stream.Next() {
-		event := stream.Current()
-		delta := event.Delta
-		if delta != "" {
-			full.WriteString(delta)
-			onDelta(delta)
-		}
-		if event.JSON.Text.Valid() {
-			break
-		}
-	}
-	if err := stream.Err(); err != nil {
-		log.Printf("openai stream error: model=%s ms=%d err=%v", c.model, time.Since(start).Milliseconds(), err)
-		return full.String(), err
-	}
-
-	result := strings.TrimSpace(full.String())
-	if result == "" {
-		log.Printf("openai stream empty: model=%s ms=%d", c.model, time.Since(start).Milliseconds())
-		return result, errors.New("empty response from model")
-	}
-	log.Printf("openai stream done: model=%s ms=%d chars=%d", c.model, time.Since(start).Milliseconds(), len(result))
-	return result, nil
-}
-
 func (c *Client) TextResponse(ctx context.Context, input []responses.ResponseInputItemUnionParam) (string, error) {
 	start := time.Now()
 	log.Printf("openai text start: model=%s items=%d", c.model, len(input))

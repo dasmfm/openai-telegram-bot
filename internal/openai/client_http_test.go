@@ -41,6 +41,9 @@ func TestClientHTTPEndpoints(t *testing.T) {
 			if strings.Contains(string(body), "Classify the user request") {
 				text = "IMAGE"
 			}
+			if strings.Contains(string(body), "allow_image_action") {
+				text = `{"allow_image_action":true,"reply":"ok"}`
+			}
 			writeJSON(map[string]any{
 				"output": []any{map[string]any{
 					"type": "message",
@@ -116,6 +119,11 @@ func TestClientHTTPEndpoints(t *testing.T) {
 		t.Fatalf("ClassifyImageRequest failed: wantImage=%v err=%v", wantImage, err)
 	}
 
+	allowed, reply, err := c.GuardImageAction(ctx, "нарисуй кота", false)
+	if err != nil || !allowed || reply != "ok" {
+		t.Fatalf("GuardImageAction failed: allowed=%v reply=%q err=%v", allowed, reply, err)
+	}
+
 	gen, err := c.GenerateImage(ctx, "generate prompt")
 	if err != nil || string(gen) != "generated-image" {
 		t.Fatalf("GenerateImage failed: bytes=%q err=%v", string(gen), err)
@@ -140,8 +148,8 @@ func TestClientHTTPEndpoints(t *testing.T) {
 		t.Fatalf("DeleteFile failed: %v", err)
 	}
 
-	if s.responsesCount != 2 {
-		t.Fatalf("expected 2 /responses calls, got %d", s.responsesCount)
+	if s.responsesCount != 3 {
+		t.Fatalf("expected 3 /responses calls, got %d", s.responsesCount)
 	}
 	if s.genCount != 1 || s.editCount != 1 || s.transcribeCount != 1 || s.uploadCount != 1 || s.deleteCount != 1 {
 		t.Fatalf("unexpected endpoint counters: %+v", s)
@@ -151,5 +159,37 @@ func TestClientHTTPEndpoints(t *testing.T) {
 	}
 	if !s.sawUploadPurpose {
 		t.Fatalf("expected upload purpose field, got %+v", s)
+	}
+}
+
+func TestGuardImageAction_ParseError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/responses" {
+			t.Fatalf("unexpected request path: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"output": []any{map[string]any{
+				"type":    "message",
+				"content": []any{map[string]any{"type": "output_text", "text": "not-json"}},
+			}},
+		})
+	}))
+	defer server.Close()
+
+	c := NewWithOptions(
+		"test-key",
+		"gpt-5.2",
+		"gpt-image-1-mini",
+		"gpt-5-mini",
+		"whisper-1",
+		"system",
+		option.WithBaseURL(server.URL+"/"),
+		option.WithHTTPClient(server.Client()),
+	)
+
+	_, _, err := c.GuardImageAction(context.Background(), "remove watermark", true)
+	if err == nil {
+		t.Fatal("expected parse error from GuardImageAction")
 	}
 }

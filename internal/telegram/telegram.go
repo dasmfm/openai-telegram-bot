@@ -21,8 +21,10 @@ type Client struct {
 	maxFileBytes int64
 }
 
+var newBotAPIFn = tgbotapi.NewBotAPI
+
 func New(token string, allowedIDs map[int64]bool, maxFileMB int64) (*Client, error) {
-	bot, err := tgbotapi.NewBotAPI(token)
+	bot, err := newBotAPIFn(token)
 	if err != nil {
 		return nil, err
 	}

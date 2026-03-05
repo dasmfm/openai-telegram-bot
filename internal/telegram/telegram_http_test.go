@@ -102,6 +102,61 @@ func TestDownloadFile_SuccessAndTooLarge(t *testing.T) {
 	}
 }
 
+func TestDownloadFile_ErrorBranches(t *testing.T) {
+	t.Run("getFile error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/botTESTTOKEN/getMe":
+				_, _ = w.Write([]byte(`{"ok":true,"result":{"id":1,"is_bot":true,"first_name":"bot","username":"bot"}}`))
+			case "/botTESTTOKEN/getFile":
+				_, _ = w.Write([]byte(`{"ok":false,"description":"bad file id"}`))
+			default:
+				t.Fatalf("unexpected path: %s", r.URL.Path)
+			}
+		}))
+		defer server.Close()
+
+		bot, err := tgbotapi.NewBotAPIWithClient("TESTTOKEN", server.URL+"/bot%s/%s", server.Client())
+		if err != nil {
+			t.Fatalf("failed to init bot: %v", err)
+		}
+		c := &Client{bot: bot, maxFileBytes: 20}
+		if _, _, err := c.DownloadFile(context.Background(), "bad"); err == nil {
+			t.Fatal("expected getFile error")
+		}
+	})
+
+	t.Run("download status error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/botTESTTOKEN/getMe":
+				_, _ = w.Write([]byte(`{"ok":true,"result":{"id":1,"is_bot":true,"first_name":"bot","username":"bot"}}`))
+			case "/botTESTTOKEN/getFile":
+				_, _ = w.Write([]byte(`{"ok":true,"result":{"file_id":"abc","file_path":"photos/pic.jpg"}}`))
+			case "/file/botTESTTOKEN/photos/pic.jpg":
+				w.WriteHeader(http.StatusBadGateway)
+			default:
+				t.Fatalf("unexpected path: %s", r.URL.Path)
+			}
+		}))
+		defer server.Close()
+
+		origDefaultTransport := http.DefaultTransport
+		targetURL, _ := url.Parse(server.URL)
+		http.DefaultTransport = &rewriteTelegramTransport{base: origDefaultTransport, target: targetURL}
+		defer func() { http.DefaultTransport = origDefaultTransport }()
+
+		bot, err := tgbotapi.NewBotAPIWithClient("TESTTOKEN", server.URL+"/bot%s/%s", server.Client())
+		if err != nil {
+			t.Fatalf("failed to init bot: %v", err)
+		}
+		c := &Client{bot: bot, maxFileBytes: 20}
+		if _, _, err := c.DownloadFile(context.Background(), "abc"); err == nil {
+			t.Fatal("expected download status error")
+		}
+	})
+}
+
 func TestDeleteAndTyping(t *testing.T) {
 	var deleteCalls, typingCalls int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -133,5 +188,99 @@ func TestDeleteAndTyping(t *testing.T) {
 
 	if deleteCalls != 1 || typingCalls != 1 {
 		t.Fatalf("unexpected call counts: delete=%d typing=%d", deleteCalls, typingCalls)
+	}
+}
+
+func TestTyping_ErrorPath(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/botTESTTOKEN/getMe":
+			_, _ = w.Write([]byte(`{"ok":true,"result":{"id":1,"is_bot":true,"first_name":"bot","username":"bot"}}`))
+		case "/botTESTTOKEN/sendChatAction":
+			_, _ = w.Write([]byte(`{"ok":false,"description":"chat action failed"}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	bot, err := tgbotapi.NewBotAPIWithClient("TESTTOKEN", server.URL+"/bot%s/%s", server.Client())
+	if err != nil {
+		t.Fatalf("failed to init bot: %v", err)
+	}
+	c := &Client{bot: bot}
+
+	// No panic and no return value; this just exercises error branch.
+	c.Typing(1)
+}
+
+func TestBotGetter(t *testing.T) {
+	raw := &tgbotapi.BotAPI{}
+	c := &Client{bot: raw}
+	if c.Bot() != raw {
+		t.Fatal("Bot() should return underlying bot pointer")
+	}
+}
+
+func TestSendMessageEditAndPhoto(t *testing.T) {
+	var sendCalls, editCalls, photoCalls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/botTESTTOKEN/getMe":
+			_, _ = w.Write([]byte(`{"ok":true,"result":{"id":1,"is_bot":true,"first_name":"bot","username":"bot"}}`))
+		case "/botTESTTOKEN/sendMessage":
+			sendCalls++
+			body, _ := io.ReadAll(r.Body)
+			vals, _ := url.ParseQuery(string(body))
+			if sendCalls == 1 && vals.Get("parse_mode") == "HTML" {
+				_, _ = w.Write([]byte(`{"ok":false,"description":"Bad Request: can't parse entities"}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"ok":true,"result":{"message_id":77,"date":0,"chat":{"id":1,"type":"private"}}}`))
+		case "/botTESTTOKEN/editMessageText":
+			editCalls++
+			body, _ := io.ReadAll(r.Body)
+			vals, _ := url.ParseQuery(string(body))
+			if editCalls == 1 && vals.Get("parse_mode") == "HTML" {
+				_, _ = w.Write([]byte(`{"ok":false,"description":"Bad Request: can't parse entities"}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"ok":true,"result":{"message_id":77,"date":0,"chat":{"id":1,"type":"private"},"text":"ok"}}`))
+		case "/botTESTTOKEN/sendPhoto":
+			photoCalls++
+			_, _ = w.Write([]byte(`{"ok":true,"result":{"message_id":88,"date":0,"chat":{"id":1,"type":"private"}}}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	bot, err := tgbotapi.NewBotAPIWithClient("TESTTOKEN", server.URL+"/bot%s/%s", server.Client())
+	if err != nil {
+		t.Fatalf("failed to init bot: %v", err)
+	}
+	c := &Client{bot: bot}
+
+	msgID, err := c.SendMessage(1, "<b>hi")
+	if err != nil {
+		t.Fatalf("SendMessage returned error: %v", err)
+	}
+	if msgID != 77 {
+		t.Fatalf("unexpected message id: %d", msgID)
+	}
+	if err := c.EditMessage(1, 77, "<i>broken"); err != nil {
+		t.Fatalf("EditMessage returned error: %v", err)
+	}
+	if err := c.SendPhotoBytes(1, []byte("png")); err != nil {
+		t.Fatalf("SendPhotoBytes returned error: %v", err)
+	}
+	if sendCalls != 2 {
+		t.Fatalf("expected send fallback calls = 2, got %d", sendCalls)
+	}
+	if editCalls != 2 {
+		t.Fatalf("expected edit fallback calls = 2, got %d", editCalls)
+	}
+	if photoCalls != 1 {
+		t.Fatalf("expected one photo call, got %d", photoCalls)
 	}
 }
