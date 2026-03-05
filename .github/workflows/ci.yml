@@ -23,9 +23,6 @@ jobs:
       - name: Run tests with coverage
         run: go test -count=1 -covermode=atomic -coverprofile=coverage.out ./...
 
-      - name: Normalize coverage paths
-        run: sed -i 's|^openai_telegram_bot/|./|' coverage.out
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:

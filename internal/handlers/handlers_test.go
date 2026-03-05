@@ -10,8 +10,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/openai/openai-go/v3/responses"
 
-	"openai_telegram_bot/internal/memory"
-	openaiwrap "openai_telegram_bot/internal/openai"
+	"github.com/dasmfm/openai-telegram-bot/internal/memory"
+	openaiwrap "github.com/dasmfm/openai-telegram-bot/internal/openai"
 )
 
 type downloadedFile struct {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/openai/openai-go/v3/option"
@@ -119,6 +120,55 @@ func TestGenerateImage_UsesURLBranch(t *testing.T) {
 	}
 }
 
+func TestGenerateImage_EdgeErrors(t *testing.T) {
+	t.Run("empty prompt", func(t *testing.T) {
+		c := New("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "")
+		if _, err := c.GenerateImage(context.Background(), " "); err == nil {
+			t.Fatal("expected empty prompt error")
+		}
+	})
+
+	t.Run("empty data", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []any{}})
+		}))
+		defer server.Close()
+		c := NewWithOptions("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "", option.WithBaseURL(server.URL+"/"), option.WithHTTPClient(server.Client()))
+		if _, err := c.GenerateImage(context.Background(), "draw"); err == nil || !strings.Contains(err.Error(), "empty image response") {
+			t.Fatalf("expected empty image response error, got %v", err)
+		}
+	})
+
+	t.Run("bad b64", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []any{map[string]any{"b64_json": "***not-b64***"}},
+			})
+		}))
+		defer server.Close()
+		c := NewWithOptions("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "", option.WithBaseURL(server.URL+"/"), option.WithHTTPClient(server.Client()))
+		if _, err := c.GenerateImage(context.Background(), "draw"); err == nil {
+			t.Fatal("expected decode error")
+		}
+	})
+
+	t.Run("empty response object", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []any{map[string]any{}},
+			})
+		}))
+		defer server.Close()
+		c := NewWithOptions("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "", option.WithBaseURL(server.URL+"/"), option.WithHTTPClient(server.Client()))
+		if _, err := c.GenerateImage(context.Background(), "draw"); err == nil || !strings.Contains(err.Error(), "empty image response") {
+			t.Fatalf("expected empty image response error, got %v", err)
+		}
+	})
+}
+
 func TestEditImage_RetriesOnTooManyRequests(t *testing.T) {
 	var calls int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -147,6 +197,50 @@ func TestEditImage_RetriesOnTooManyRequests(t *testing.T) {
 	if calls != 3 {
 		t.Fatalf("expected 3 calls with retries, got %d", calls)
 	}
+}
+
+func TestEditImage_EdgeErrors(t *testing.T) {
+	t.Run("empty prompt", func(t *testing.T) {
+		c := New("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "")
+		if _, err := c.EditImage(context.Background(), "", "data:image/jpeg;base64,AAAA"); err == nil {
+			t.Fatal("expected empty prompt error")
+		}
+	})
+
+	t.Run("invalid data url", func(t *testing.T) {
+		c := New("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "")
+		if _, err := c.EditImage(context.Background(), "edit", "bad-data-url"); err == nil {
+			t.Fatal("expected invalid data url error")
+		}
+	})
+
+	t.Run("empty data", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []any{}})
+		}))
+		defer server.Close()
+		c := NewWithOptions("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "", option.WithBaseURL(server.URL+"/"), option.WithHTTPClient(server.Client()))
+		dataURL := "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString([]byte("raw"))
+		if _, err := c.EditImage(context.Background(), "edit", dataURL); err == nil || !strings.Contains(err.Error(), "empty image response") {
+			t.Fatalf("expected empty image response error, got %v", err)
+		}
+	})
+
+	t.Run("bad b64", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []any{map[string]any{"b64_json": "***not-b64***"}},
+			})
+		}))
+		defer server.Close()
+		c := NewWithOptions("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "", option.WithBaseURL(server.URL+"/"), option.WithHTTPClient(server.Client()))
+		dataURL := "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString([]byte("raw"))
+		if _, err := c.EditImage(context.Background(), "edit", dataURL); err == nil {
+			t.Fatal("expected decode error")
+		}
+	})
 }
 
 func TestTranscribe_RetriesOnServerError(t *testing.T) {
@@ -206,5 +300,48 @@ func TestUploadFile_RetriesOnServerError(t *testing.T) {
 	}
 	if calls != 3 {
 		t.Fatalf("expected 3 calls with retries, got %d", calls)
+	}
+}
+
+func TestUploadFile_EmptyID(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": ""})
+	}))
+	defer server.Close()
+
+	c := NewWithOptions("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "", option.WithBaseURL(server.URL+"/"), option.WithHTTPClient(server.Client()))
+	if _, err := c.UploadFile(context.Background(), []byte("data"), "note.txt", "text/plain"); err == nil || !strings.Contains(err.Error(), "empty file id") {
+		t.Fatalf("expected empty file id error, got %v", err)
+	}
+}
+
+func TestTranscribe_EmptyText(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"text": ""})
+	}))
+	defer server.Close()
+
+	c := NewWithOptions("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "", option.WithBaseURL(server.URL+"/"), option.WithHTTPClient(server.Client()))
+	if _, err := c.Transcribe(context.Background(), []byte("ogg"), "voice.ogg", "audio/ogg"); err == nil || !strings.Contains(err.Error(), "empty transcription") {
+		t.Fatalf("expected empty transcription error, got %v", err)
+	}
+}
+
+func TestDeleteFile_EdgeCases(t *testing.T) {
+	c := New("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "")
+	if err := c.DeleteFile(context.Background(), " "); err != nil {
+		t.Fatalf("empty file id should be no-op, got %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"error":{"message":"boom"}}`))
+	}))
+	defer server.Close()
+	c = NewWithOptions("k", "gpt-5.2", "gpt-image-1-mini", "gpt-5-mini", "whisper-1", "", option.WithBaseURL(server.URL+"/"), option.WithHTTPClient(server.Client()))
+	if err := c.DeleteFile(context.Background(), "file-1"); err == nil {
+		t.Fatal("expected delete error")
 	}
 }

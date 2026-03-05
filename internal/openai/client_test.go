@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -168,7 +167,7 @@ func TestShouldRetryOpenAI_StringCases(t *testing.T) {
 		"broken pipe",
 	}
 	for _, msg := range cases {
-		if !shouldRetryOpenAI(fmt.Errorf(msg)) {
+		if !shouldRetryOpenAI(errors.New(msg)) {
 			t.Fatalf("expected retry for message %q", msg)
 		}
 	}

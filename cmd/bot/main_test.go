@@ -7,10 +7,10 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	"openai_telegram_bot/internal/config"
-	"openai_telegram_bot/internal/memory"
-	openaiwrap "openai_telegram_bot/internal/openai"
-	"openai_telegram_bot/internal/telegram"
+	"github.com/dasmfm/openai-telegram-bot/internal/config"
+	"github.com/dasmfm/openai-telegram-bot/internal/memory"
+	openaiwrap "github.com/dasmfm/openai-telegram-bot/internal/openai"
+	"github.com/dasmfm/openai-telegram-bot/internal/telegram"
 )
 
 type fakeHandler struct {
