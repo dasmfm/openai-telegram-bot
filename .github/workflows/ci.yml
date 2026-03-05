@@ -27,7 +27,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.out
-          use_oidc: true
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
   docker-build:
