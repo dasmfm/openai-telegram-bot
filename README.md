@@ -1,5 +1,8 @@
 # OpenAI Telegram Bot
 
+[![CI](https://github.com/dasmfm/openai-telegram-bot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dasmfm/openai-telegram-bot/actions/workflows/ci.yml)
+[![Publish](https://github.com/dasmfm/openai-telegram-bot/actions/workflows/publish.yml/badge.svg)](https://github.com/dasmfm/openai-telegram-bot/actions/workflows/publish.yml)
+[![Latest Release](https://img.shields.io/github/v/release/dasmfm/openai-telegram-bot)](https://github.com/dasmfm/openai-telegram-bot/releases)
 [![Coverage](https://codecov.io/gh/dasmfm/openai-telegram-bot/graph/badge.svg)](https://codecov.io/gh/dasmfm/openai-telegram-bot)
 
 A practical Telegram bot powered by OpenAI: chat naturally, understand photos, generate or edit images, and transcribe voice notes, all in one conversation.
@@ -69,6 +72,12 @@ docker run --rm \
 ```bash
 go run ./cmd/bot
 ```
+
+## Security Notes
+
+- Restrict access with `ALLOWED_TG_IDS`; do not run with an empty allowlist.
+- Keep `OPENAI_API_KEY` and `TELEGRAM_TOKEN` only in `.env` or your secret manager.
+- Rotate tokens immediately if logs or shell history may have exposed them.
 
 ## Environment Variables
 
