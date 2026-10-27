@@ -26,7 +26,7 @@ A practical Telegram bot powered by OpenAI: chat naturally, understand photos, g
 
 - Telegram bot token (create a bot via `@BotFather`).
 - OpenAI API key.
-- Docker + Docker Compose (recommended), or Go `1.22+` for local runs.
+- Docker + Docker Compose (recommended), or Go `1.27+` for local runs.
 
 ## Quick Start (Docker Compose)
 
