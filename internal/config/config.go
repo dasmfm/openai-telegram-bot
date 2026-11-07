@@ -39,17 +39,17 @@ func Load() (Config, error) {
 
 	cfg.OpenAIModel = strings.TrimSpace(os.Getenv("OPENAI_MODEL"))
 	if cfg.OpenAIModel == "" {
-		cfg.OpenAIModel = "gpt-5.2"
+		cfg.OpenAIModel = "gpt-6.1-sol"
 	}
 
 	cfg.ImageModel = strings.TrimSpace(os.Getenv("IMAGE_MODEL"))
 	if cfg.ImageModel == "" {
-		cfg.ImageModel = "gpt-image-1-mini"
+		cfg.ImageModel = "gpt-image-2.6-flare"
 	}
 
 	cfg.RouterModel = strings.TrimSpace(os.Getenv("ROUTER_MODEL"))
 	if cfg.RouterModel == "" {
-		cfg.RouterModel = "gpt-5-mini"
+		cfg.RouterModel = "gpt-6-luna"
 	}
 
 	basePrompt := "Reply in Telegram HTML only. Use <b>, <i>, <u>, <code>, and plain text. Do not use other tags."
@@ -75,7 +75,7 @@ func Load() (Config, error) {
 	cfg.RequestTimeout = time.Duration(getenvInt("REQUEST_TIMEOUT_SEC", 120)) * time.Second
 	cfg.TranscribeModel = strings.TrimSpace(os.Getenv("TRANSCRIBE_MODEL"))
 	if cfg.TranscribeModel == "" {
-		cfg.TranscribeModel = "whisper-1"
+		cfg.TranscribeModel = "gpt-transcribe"
 	}
 
 	if len(missing) > 0 {

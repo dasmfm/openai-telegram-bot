@@ -4,13 +4,13 @@ go 1.27
 
 require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
-	github.com/openai/openai-go/v3 v3.91.1
+	github.com/openai/openai-go/v3 v3.96.0
 )
 
 require (
 	github.com/coder/websocket v1.8.15 // indirect
-	github.com/tidwall/gjson v1.20.0 // indirect
+	github.com/tidwall/gjson v1.20.1 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.2 // indirect
-	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/tidwall/sjson v1.2.7 // indirect
 )

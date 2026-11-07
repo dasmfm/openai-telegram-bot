@@ -24,10 +24,10 @@ func TestLoadDefaultsAndRequiredEnv(t *testing.T) {
 		t.Fatalf("Load returned error: %v", err)
 	}
 
-	if cfg.OpenAIModel != "gpt-5.2" || cfg.ImageModel != "gpt-image-1-mini" || cfg.RouterModel != "gpt-5-mini" {
+	if cfg.OpenAIModel != "gpt-6.1-sol" || cfg.ImageModel != "gpt-image-2.6-flare" || cfg.RouterModel != "gpt-6-luna" {
 		t.Fatalf("unexpected default models: %+v", cfg)
 	}
-	if cfg.TranscribeModel != "whisper-1" {
+	if cfg.TranscribeModel != "gpt-transcribe" {
 		t.Fatalf("unexpected default transcribe model: %q", cfg.TranscribeModel)
 	}
 	if cfg.MaxHistoryMsgs != 20 || cfg.MaxFileMB != 20 {
@@ -41,6 +41,24 @@ func TestLoadDefaultsAndRequiredEnv(t *testing.T) {
 	}
 	if !strings.HasPrefix(cfg.SystemPrompt, "Reply in Telegram HTML only.") {
 		t.Fatalf("base system prompt missing: %q", cfg.SystemPrompt)
+	}
+}
+
+func TestLoadModelOverrides(t *testing.T) {
+	t.Setenv("TELEGRAM_TOKEN", "tg-token")
+	t.Setenv("OPENAI_API_KEY", "oa-key")
+	t.Setenv("ALLOWED_TG_IDS", "42")
+	t.Setenv("OPENAI_MODEL", "custom-chat")
+	t.Setenv("IMAGE_MODEL", "custom-image")
+	t.Setenv("ROUTER_MODEL", "custom-router")
+	t.Setenv("TRANSCRIBE_MODEL", "custom-transcribe")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.OpenAIModel != "custom-chat" || cfg.ImageModel != "custom-image" || cfg.RouterModel != "custom-router" || cfg.TranscribeModel != "custom-transcribe" {
+		t.Fatalf("model overrides not preserved: %+v", cfg)
 	}
 }
 

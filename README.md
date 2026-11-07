@@ -86,14 +86,14 @@ go run ./cmd/bot
 | `TELEGRAM_TOKEN` | Yes | - | Telegram Bot API token from BotFather. | `123456:ABC...` |
 | `OPENAI_API_KEY` | Yes | - | OpenAI API key used for all model calls. | `sk-proj-...` |
 | `ALLOWED_TG_IDS` | Yes | - | Comma-separated Telegram user IDs allowed to use the bot. | `123456789,987654321` |
-| `OPENAI_MODEL` | No | `gpt-5.2` | Main text model for chat responses. | `gpt-5.2` |
-| `IMAGE_MODEL` | No | `gpt-image-1-mini` | Model used for image generation/editing. | `gpt-image-1-mini` |
-| `ROUTER_MODEL` | No | `gpt-5-mini` | Model used to route text vs image actions. | `gpt-5-mini` |
+| `OPENAI_MODEL` | No | `gpt-6.1-sol` | Main text model for chat responses. | `gpt-6.1-sol` |
+| `IMAGE_MODEL` | No | `gpt-image-2.6-flare` | Model used for image generation/editing. | `gpt-image-2.6-flare` |
+| `ROUTER_MODEL` | No | `gpt-6-luna` | Model used to route text vs image actions. | `gpt-6-luna` |
 | `SYSTEM_PROMPT` | No | empty | Custom behavior prompt appended to base Telegram HTML prompt. | `You are a helpful assistant.` |
 | `MAX_HISTORY_MSGS` | No | `20` | Max number of messages kept in memory per chat. | `20` |
 | `MAX_FILE_MB` | No | `20` | Max downloaded file size from Telegram. | `20` |
 | `REQUEST_TIMEOUT_SEC` | No | `120` | Timeout for OpenAI/Telegram request handling. | `120` |
-| `TRANSCRIBE_MODEL` | No | `whisper-1` | Model used for voice transcription. | `whisper-1` |
+| `TRANSCRIBE_MODEL` | No | `gpt-transcribe` | Model used for voice transcription. | `gpt-transcribe` |
 
 ## Commands
 

@@ -44,6 +44,18 @@ func TestClientHTTPEndpoints(t *testing.T) {
 			if strings.Contains(string(body), "allow_image_action") {
 				text = `{"allow_image_action":true,"reply":"ok"}`
 			}
+			wantModel := "gpt-6.1-sol"
+			if text != "hello from model" {
+				wantModel = "gpt-6-luna"
+			}
+			var payload struct {
+				Model string `json:"model"`
+			}
+			if err := json.Unmarshal(body, &payload); err != nil {
+				t.Errorf("decode response request: %v", err)
+			} else if payload.Model != wantModel {
+				t.Errorf("response model = %q, want %q", payload.Model, wantModel)
+			}
 			writeJSON(map[string]any{
 				"output": []any{map[string]any{
 					"type": "message",
@@ -55,6 +67,14 @@ func TestClientHTTPEndpoints(t *testing.T) {
 			})
 		case r.Method == http.MethodPost && r.URL.Path == "/images/generations":
 			s.genCount++
+			var payload struct {
+				Model string `json:"model"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				t.Errorf("decode image request: %v", err)
+			} else if payload.Model != "gpt-image-2.6-flare" {
+				t.Errorf("unexpected image model: %q", payload.Model)
+			}
 			writeJSON(map[string]any{
 				"data": []any{map[string]any{
 					"b64_json": base64.StdEncoding.EncodeToString([]byte("generated-image")),
@@ -63,6 +83,9 @@ func TestClientHTTPEndpoints(t *testing.T) {
 		case r.Method == http.MethodPost && r.URL.Path == "/images/edits":
 			s.editCount++
 			if err := r.ParseMultipartForm(2 << 20); err == nil && r.MultipartForm != nil {
+				if model := r.FormValue("model"); model != "gpt-image-2.6-flare" {
+					t.Errorf("unexpected image edit model: %q", model)
+				}
 				if vals := r.MultipartForm.Value["prompt"]; len(vals) > 0 && vals[0] == "edit prompt" {
 					s.sawEditPrompt = true
 				}
@@ -79,6 +102,23 @@ func TestClientHTTPEndpoints(t *testing.T) {
 			})
 		case r.Method == http.MethodPost && r.URL.Path == "/audio/transcriptions":
 			s.transcribeCount++
+			if err := r.ParseMultipartForm(2 << 20); err != nil {
+				t.Errorf("parse transcription request: %v", err)
+			} else {
+				if model := r.FormValue("model"); model != "gpt-transcribe" {
+					t.Errorf("unexpected transcription model: %q", model)
+				}
+				file, header, err := r.FormFile("file")
+				if err != nil {
+					t.Errorf("read transcription file: %v", err)
+				} else {
+					defer file.Close()
+					data, err := io.ReadAll(file)
+					if err != nil || string(data) != "ogg" || header.Filename != "voice.ogg" {
+						t.Errorf("unexpected transcription file: name=%q data=%q err=%v", header.Filename, data, err)
+					}
+				}
+			}
 			writeJSON(map[string]any{"text": "voice text"})
 		case r.Method == http.MethodPost && r.URL.Path == "/files":
 			s.uploadCount++
@@ -99,10 +139,10 @@ func TestClientHTTPEndpoints(t *testing.T) {
 
 	c := NewWithOptions(
 		"test-key",
-		"gpt-5.2",
-		"gpt-image-1-mini",
-		"gpt-5-mini",
-		"whisper-1",
+		"gpt-6.1-sol",
+		"gpt-image-2.6-flare",
+		"gpt-6-luna",
+		"gpt-transcribe",
 		"system",
 		option.WithBaseURL(server.URL+"/"),
 		option.WithHTTPClient(server.Client()),
@@ -179,10 +219,10 @@ func TestGuardImageAction_ParseError(t *testing.T) {
 
 	c := NewWithOptions(
 		"test-key",
-		"gpt-5.2",
-		"gpt-image-1-mini",
-		"gpt-5-mini",
-		"whisper-1",
+		"gpt-6.1-sol",
+		"gpt-image-2.6-flare",
+		"gpt-6-luna",
+		"gpt-transcribe",
 		"system",
 		option.WithBaseURL(server.URL+"/"),
 		option.WithHTTPClient(server.Client()),
